@@ -41,7 +41,7 @@ router.post("/", challengesImages, authMiddleware, async (req, res) => {
   }
 });
 
-// All List & Specific List
+// All List & Specific List of challenges
 router.get("/:id?",  async (req, res) => {
   try {
     const id = req.params.id;
