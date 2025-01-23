@@ -8,47 +8,105 @@ const { uploadFoodPlace } = require('../utils/multerConfig');
 const {multerErrorHandler} = require('../utils/common');
 
 
-// Add
-router.post('/', uploadFoodPlace,multerErrorHandler, authMiddleware,async (req, res) => {
-    try {
+// Add - old validation
+// router.post('/', uploadFoodPlace,multerErrorHandler, authMiddleware,async (req, res) => {
+//     try {
 
-        const {food_type_id,title,rating,location,description,short_description,map_url, condition} = req.body;
+//         const {food_type_id,title,rating,location,description,short_description,map_url} = req.body;
 
-        if (!food_type_id || !title  || !location) {
-            return res.status(400).json({ error: 'Food Type, Title, Rating, Location fields are required', status: false });
-        }
-        const [existingTitle] = await pool.query(`SELECT * FROM ${TABLE.FOODPLACE_TABLE} WHERE status = 1 and title = ? and location = ?`, [title,location]);
-        if (existingTitle.length) {
-            return res.status(400).json({ error: 'Record already exists', status: false });
-        }
-
-
-        // const baseUrl = req.protocol + '://' + req.get('host') + '/uploads/food-place/';
-        // const image_urls = req.files.map(file => baseUrl + file.filename);
-        // const image_url = image_urls.length > 0 ? image_urls[0] : '';
-
-         // Generate the base URL for images
-    const baseUrl = req.protocol + "://" + req.get("host") + "/uploads/food-place/";
-    const image_urls = req.files.map((file) => baseUrl + file.filename);
-
-    const [image_url, image_url2, image_url3, image_url4, image_url5] = [
-      image_urls[0] || null,
-      image_urls[1] || null,
-      image_urls[2] || null,
-      image_urls[3] || null,
-      image_urls[4] || null,
-    ];
+//         if (!food_type_id || !title  || !location) {
+//             return res.status(400).json({ error: 'Food Type, Title, Rating, Location fields are required', status: false });
+//         }
+//         const [existingTitle] = await pool.query(`SELECT * FROM ${TABLE.FOODPLACE_TABLE} WHERE status = 1 and title = ? and location = ?`, [title,location]);
+//         if (existingTitle.length) {
+//             return res.status(400).json({ error: 'Record already exists', status: false });
+//         }
 
 
-        await pool.query(`INSERT INTO ${TABLE.FOODPLACE_TABLE} (food_type_id,title,rating,location,image_url,description,short_description,map_url ,image_url2, image_url3, image_url4, image_url5, \`condition\`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, [food_type_id,title,rating,location,image_url,description,short_description,map_url,image_url2, image_url3, image_url4, image_url5,condition]);
+//         // const baseUrl = req.protocol + '://' + req.get('host') + '/uploads/food-place/';
+//         // const image_urls = req.files.map(file => baseUrl + file.filename);
+//         // const image_url = image_urls.length > 0 ? image_urls[0] : '';
+
+//          // Generate the base URL for images
+//     const baseUrl = req.protocol + "://" + req.get("host") + "/uploads/food-place/";
+//     const image_urls = req.files.map((file) => baseUrl + file.filename);
+
+//     const [image_url, image_url2, image_url3, image_url4, image_url5] = [
+//       image_urls[0] || null,
+//       image_urls[1] || null,
+//       image_urls[2] || null,
+//       image_urls[3] || null,
+//       image_urls[4] || null,
+//     ];
+
+
+//         await pool.query(`INSERT INTO ${TABLE.FOODPLACE_TABLE} (food_type_id,title,rating,location,image_url,description,short_description,map_url ,image_url2, image_url3, image_url4, image_url5, ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`, [food_type_id,title,rating,location,image_url,description,short_description,map_url,image_url2, image_url3, image_url4, image_url5]);
                 
-        return res.status(201).json({ message: 'Record Successfully Created', status: true });
+//         return res.status(201).json({ message: 'Record Successfully Created', status: true });
 
+//     } catch (error) {
+//         console.log("error",error)
+//         return res.status(500).json({ error: 'Server error', status: false });
+//     }
+// });
+
+router.post('/', uploadFoodPlace, multerErrorHandler, authMiddleware, async (req, res) => {
+    try {
+        const { food_type_id, title, rating, location, description, short_description, map_url } = req.body;
+
+        // Validation: Required Fields
+        if (!food_type_id || !title || !location || !map_url) {
+            return res.status(400).json({
+                error: 'Food Type, Title, Rating, Location, and Map URL fields are required',
+                status: false
+            });
+        }
+
+        // Validation: Check for Duplicate Records
+        const [conflictingRecord] = await pool.query(
+            `SELECT * FROM ${TABLE.FOODPLACE_TABLE} 
+             WHERE status = 1 AND map_url = ? AND location = ?`,
+            [map_url, location]
+        );
+
+        if (conflictingRecord.length) {
+            return res.status(400).json({
+                error: 'Another record exists with the same address and map_url',
+                status: false
+            });
+        }
+
+        // Generate the base URL for images
+        const baseUrl = req.protocol + "://" + req.get("host") + "/uploads/food-place/";
+        const image_urls = req.files.map((file) => baseUrl + file.filename);
+
+        const [image_url, image_url2, image_url3, image_url4, image_url5] = [
+            image_urls[0] || null,
+            image_urls[1] || null,
+            image_urls[2] || null,
+            image_urls[3] || null,
+            image_urls[4] || null,
+        ];
+
+        // Insert the new record
+        await pool.query(
+            `INSERT INTO ${TABLE.FOODPLACE_TABLE} 
+             (food_type_id, title, rating, location, image_url, description, short_description, map_url, image_url2, image_url3, image_url4, image_url5, created_at, status) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 1)`,
+            [
+                food_type_id, title, rating, location, image_url,
+                description, short_description, map_url,
+                image_url2, image_url3, image_url4, image_url5
+            ]
+        );
+
+        return res.status(201).json({ message: 'Record Successfully Created', status: true });
     } catch (error) {
-        console.log("error",error)
+        console.error("error", error);
         return res.status(500).json({ error: 'Server error', status: false });
     }
 });
+
 
 // All List & Specific List=food type id wise bhi fetch karvu 
 router.get('/:id?', async (req, res) => {
@@ -103,65 +161,142 @@ router.get('/foodtype/:food_type_id?', async (req, res) => {
 
 
 
-// Update
-router.put('/:id', uploadFoodPlace,multerErrorHandler,authMiddleware, async (req, res) => {
-    try {
+// // Update - old validation
+// router.put('/:id', uploadFoodPlace,multerErrorHandler,authMiddleware, async (req, res) => {
+//     try {
 
+//         const id = req.params.id;
+
+//         if (!id) {
+//             return res.status(400).json({ error: 'RowID must be required', status: false });
+//         }
+
+//         const [existingRecord] = await pool.query(`SELECT * FROM ${TABLE.FOODPLACE_TABLE} WHERE status = 1 and id = ?`, [id]);
+//         if (!existingRecord.length) {
+//             return res.status(404).json({ error: "Sorry, Record Not Found", status: false });
+//         }
+
+//         const {food_type_id,title,rating,location,description,short_description,map_url } = req.body;
+
+//         if (!food_type_id || !title  || !location) {
+//             return res.status(400).json({ error: 'Food Type, Title, Rating, Location fields are required', status: false });
+//         }
+        
+//         const [existingTitle] = await pool.query(`SELECT * FROM ${TABLE.FOODPLACE_TABLE} WHERE status = 1 and title = ? and location = ?`, [title,location]);
+//         if (existingTitle.length) {
+//             return res.status(400).json({ error: 'Record already exists', status: false });
+//         }
+
+//         // let image_url = existingRecord[0].image_url;
+
+//         // if (req.files && req.files.length > 0) {
+//         //     const baseUrl = req.protocol + '://' + req.get('host') + '/uploads/food-place/';
+//         //     req.files.forEach(file => {
+//         //         if (file.fieldname === 'image_url') {
+//         //             image_url = baseUrl + file.filename;
+//         //         }
+//         //     });
+//         // }
+
+//         // Generate the base URL for images
+//     const baseUrl = req.protocol + "://" + req.get("host") + "/uploads/food-place/";
+//     const image_urls = req.files.map((file) => baseUrl + file.filename);
+
+//     const [image_url, image_url2, image_url3, image_url4, image_url5] = [
+//       image_urls[0] || existingRecord[0].image_url,
+//       image_urls[1] || existingRecord[0].image_url2,
+//       image_urls[2] || existingRecord[0].image_url3,
+//       image_urls[3] || existingRecord[0].image_url4,
+//       image_urls[4] || existingRecord[0].image_url5,
+//     ];
+
+
+//         await pool.query(`UPDATE ${TABLE.FOODPLACE_TABLE} SET food_type_id = ?, title = ?, image_url = ?, rating = ?, location = ?, description = ?, short_description = ?, map_url = ?,image_url2 = ?, image_url3 = ?, image_url4 = ?, image_url5 = ?, updated_at = NOW() WHERE id = ?`, [food_type_id,title,image_url,rating,location,description,short_description,map_url, image_url2, image_url3, image_url4, image_url5,id]);
+
+//         return res.status(200).json({ message: "Record Successfully Updated", status: true });
+
+//     } catch (error) {
+//         console.log(error)
+//         return res.status(500).json({ error: 'Server error', status: false });
+//     }
+// });
+
+
+router.put('/:id', uploadFoodPlace, multerErrorHandler, authMiddleware, async (req, res) => {
+    try {
         const id = req.params.id;
 
         if (!id) {
             return res.status(400).json({ error: 'RowID must be required', status: false });
         }
 
-        const [existingRecord] = await pool.query(`SELECT * FROM ${TABLE.FOODPLACE_TABLE} WHERE status = 1 and id = ?`, [id]);
+        // Check if the record with the given ID exists
+        const [existingRecord] = await pool.query(
+            `SELECT * FROM ${TABLE.FOODPLACE_TABLE} WHERE status = 1 AND id = ?`,
+            [id]
+        );
         if (!existingRecord.length) {
             return res.status(404).json({ error: "Sorry, Record Not Found", status: false });
         }
 
-        const {food_type_id,title,rating,location,description,short_description,map_url , conditions} = req.body;
+        const { food_type_id, title, rating, location, description, short_description, map_url } = req.body;
 
-        if (!food_type_id || !title  || !location) {
-            return res.status(400).json({ error: 'Food Type, Title, Rating, Location fields are required', status: false });
-        }
-        
-        const [existingTitle] = await pool.query(`SELECT * FROM ${TABLE.FOODPLACE_TABLE} WHERE status = 1 and title = ? and location = ?`, [title,location]);
-        if (existingTitle.length) {
-            return res.status(400).json({ error: 'Record already exists', status: false });
+        if (!food_type_id || !title || !location || !map_url) {
+            return res.status(400).json({
+                error: 'Food Type, Title, Rating, Location, and Map URL fields are required',
+                status: false
+            });
         }
 
-        // let image_url = existingRecord[0].image_url;
-
-        // if (req.files && req.files.length > 0) {
-        //     const baseUrl = req.protocol + '://' + req.get('host') + '/uploads/food-place/';
-        //     req.files.forEach(file => {
-        //         if (file.fieldname === 'image_url') {
-        //             image_url = baseUrl + file.filename;
-        //         }
-        //     });
-        // }
+        // Check for records with the same title, address, and map_url (excluding the current ID)
+        const [conflictingRecord] = await pool.query(
+            `SELECT * FROM ${TABLE.FOODPLACE_TABLE} 
+             WHERE status = 1 AND map_url = ? AND location = ? AND id != ?`,
+            [map_url, location, id]
+        );
+        if (conflictingRecord.length) {
+            return res.status(400).json({
+                error: 'Another record exists with the same address and map_url',
+                status: false
+            });
+        }
 
         // Generate the base URL for images
-    const baseUrl = req.protocol + "://" + req.get("host") + "/uploads/food-place/";
-    const image_urls = req.files.map((file) => baseUrl + file.filename);
+        const baseUrl = req.protocol + "://" + req.get("host") + "/uploads/food-place/";
+        const image_urls = req.files.map((file) => baseUrl + file.filename);
 
-    const [image_url, image_url2, image_url3, image_url4, image_url5] = [
-      image_urls[0] || existingRecord[0].image_url,
-      image_urls[1] || existingRecord[0].image_url2,
-      image_urls[2] || existingRecord[0].image_url3,
-      image_urls[3] || existingRecord[0].image_url4,
-      image_urls[4] || existingRecord[0].image_url5,
-    ];
+        const [image_url, image_url2, image_url3, image_url4, image_url5] = [
+            image_urls[0] || existingRecord[0].image_url,
+            image_urls[1] || existingRecord[0].image_url2,
+            image_urls[2] || existingRecord[0].image_url3,
+            image_urls[3] || existingRecord[0].image_url4,
+            image_urls[4] || existingRecord[0].image_url5,
+        ];
 
-
-        await pool.query(`UPDATE ${TABLE.FOODPLACE_TABLE} SET food_type_id = ?, title = ?, image_url = ?, rating = ?, location = ?, description = ?, short_description = ?, map_url = ?,image_url2 = ?, image_url3 = ?, image_url4 = ?, image_url5 = ?, conditions = ?, updated_at = NOW() WHERE id = ?`, [food_type_id,title,image_url,rating,location,description,short_description,map_url, image_url2, image_url3, image_url4, image_url5,conditions,id]);
+        // Update the record
+        await pool.query(
+            `UPDATE ${TABLE.FOODPLACE_TABLE} 
+             SET food_type_id = ?, title = ?, image_url = ?, rating = ?, location = ?, 
+                 description = ?, short_description = ?, map_url = ?, 
+                 image_url2 = ?, image_url3 = ?, image_url4 = ?, image_url5 = ?, 
+                 updated_at = NOW() 
+             WHERE id = ?`,
+            [
+                food_type_id, title, image_url, rating, location,
+                description, short_description, map_url,
+                image_url2, image_url3, image_url4, image_url5,
+                id
+            ]
+        );
 
         return res.status(200).json({ message: "Record Successfully Updated", status: true });
-
     } catch (error) {
-        console.log(error)
+        console.error(error);
         return res.status(500).json({ error: 'Server error', status: false });
     }
 });
+
+
 
 
 // Delete
