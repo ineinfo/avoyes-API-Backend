@@ -29,26 +29,21 @@ const getStorage = (moduleType) => {
 
 //file types allowed
 const fileFilter = (req, file, cb) => {
-  const fileTypes = /jpeg|jpg|png/; //gif opetional
+  const fileTypes = /\.(jpeg|jpg|png|webp|gif|bmp|tiff|svg)$/i;
   const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = fileTypes.test(file.mimetype);
+  const mimetype = /image\/(jpeg|jpg|png|webp|gif|bmp|tiff|svg\+xml)/.test(file.mimetype);
+
+  console.log("File originalname:", file.originalname);
+  console.log("File mimetype:", file.mimetype);
+  console.log("Extname valid:", extname);
+  console.log("Mimetype valid:", mimetype);
 
   if (extname && mimetype) {
     return cb(null, true);
   } else {
-    cb(new Error("Only jpg, jpeg, and png files are allowed"));
+    cb(new Error("Only jpeg, jpg, png, webp, gif, bmp, tiff, and svg files are allowed"));
   }
 };
-
-// // Export different upload instances for different modules with validation
-// const uploadUsers = multer({ storage: getStorage('users'),fileFilter: fileFilter,limits:  { fileSize: 5 * 1024 }});
-// const uploadBlogs = multer({ storage: getStorage('blogs'),fileFilter: fileFilter,limits:  { fileSize: 5 * 1024 } });
-// const uploadProductCategory = multer({ storage: getStorage('product-category'),fileFilter: fileFilter,limits:  { fileSize: 5 * 1024 }, }).any();
-// const uploadProductSubCategory = multer({ storage: getStorage('product-subcategory'),fileFilter: fileFilter,limits:  { fileSize: 5 * 1024 } });
-// const uploadEvents = multer({ storage: getStorage('events') ,fileFilter: fileFilter,limits:  { fileSize: 5 * 1024 }});
-// const uploadProducts=multer({ storage: getStorage('products'),fileFilter: fileFilter,limits:  { fileSize: 5 * 1024 } });
-// const uploadFoodPlace=multer({ storage: getStorage('food-place'),fileFilter: fileFilter,limits:  { fileSize: 5 * 1024 } });
-// const uploadPopularFood=multer({ storage: getStorage('popular-food') ,fileFilter: fileFilter,limits:  { fileSize: 5 * 1024 }});
 
 // Export different upload instances for different modules with validation
 const uploadUsers = multer({

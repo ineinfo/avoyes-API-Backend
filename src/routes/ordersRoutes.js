@@ -69,166 +69,18 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 // // All
-// router.get("/:id?", authMiddleware, async (req, res) => {
-//   try {
-//     const id = req.params.id;
-//     const user_id = req.user_id;
-//     const role_id = req.role_id;
-//     const { page = 1, limit = 10 } = req.body;
-//     const parsedPage = parseInt(page);
-//     const parsedLimit =
-//       parseInt(limit) > 0 ? parseInt(limit) : 100000000000000000000000;
-//     const offset = (parsedPage - 1) * parsedLimit;
-
-//     if (id) {
-
-      
-//       let [results] = await pool.query(
-//         `SELECT 
-//     o.id,
-//     o.id as order_id,
-//     o.order_number,
-//     o.status, 
-//     o.user_id,
-//     o.final_amount,
-//     o.order_amount,
-//     o.address_id,
-//     o.created_at, 
-//     o.order_status,
-//     o.updated_at,
-//     CASE 
-//             WHEN o.order_status = 1 THEN 'pending'
-//             WHEN o.order_status = 2 THEN 'in progress'
-//             WHEN o.order_status = 3 THEN 'done'
-//             WHEN o.order_status = 4 THEN 'order cancelled'
-//             ELSE 'unknown'
-//           END AS status_label,
-//     JSON_ARRAYAGG(
-//       JSON_OBJECT(
-//         'order_item_id',oi.id,
-//         'product_id',op.id,
-//         'item_name', op.title,
-//         'quantity', oi.quantity,
-//         'rate', oi.rate,
-//         'amount', oi.amount,
-//         'image_url',oi.image_url,
-//         'size_id',oi.size_id,
-//         'color_id',oi.color_id
-        
-//       )
-//     ) AS order_items
-    
-//   FROM ${TABLE.ORDERS_TABLE} o
-//   LEFT JOIN ${TABLE.ORDERITEMS_TABLE} oi ON o.id = oi.order_id
-//   LEFT JOIN ${TABLE.PRODUCTS_TABLE} op ON op.id = oi.product_id 
-//   WHERE o.status != 0
-//   AND o.id = ?
-//   GROUP BY o.id
-//   ORDER BY o.id DESC
-//   `,
-//         [id]
-//       );
-
-
-
-//       if (results.length > 0) {
-//         return res.status(200).json({
-//           data: results[0],
-//           message: "Record Successfully Fetched",
-//           status: true,
-//         });
-//       }
-
-//       return res
-//         .status(404)
-//         .json({ error: "Sorry, Record Not Found", status: false });
-//     }
-
-//     let userAdminCondition = "";
-//     if (role_id == isRoleUser()) {
-//       userAdminCondition = "AND o.user_id = " + user_id;
-//     }
-
-//     let [results] = await pool.query(
-//       `SELECT 
-//     o.id,
-//     o.id as order_id,
-//     o.order_number,
-//     o.status, 
-//     o.final_amount,
-//     o.order_amount,
-//     o.created_at, 
-//     o.user_id,
-//     o.address_id,
-//     o.order_status,
-//     o.updated_at,
-//     CASE 
-//             WHEN o.order_status = 1 THEN 'pending'
-//             WHEN o.order_status = 2 THEN 'in progress'
-//             WHEN o.order_status = 3 THEN 'done'
-//             WHEN o.order_status = 4 THEN 'order cancelled'
-//             ELSE 'unknown'
-//           END AS status_label,
-//     JSON_ARRAYAGG(
-//       JSON_OBJECT(
-//         'order_item_id',oi.id,
-//         'product_id',op.id,
-//         'item_name', op.title,
-//         'quantity', oi.quantity,
-//         'rate', oi.rate,
-//         'amount', oi.amount,
-//         'image_url',oi.image_url,
-//         'size_id',oi.size_id,
-//         'color_id',oi.color_id
-//       )
-//     ) AS order_items
-    
-//   FROM ${TABLE.ORDERS_TABLE} o
-//   LEFT JOIN ${TABLE.ORDERITEMS_TABLE} oi ON o.id = oi.order_id
-//   LEFT JOIN ${TABLE.PRODUCTS_TABLE} op ON op.id = oi.product_id 
-//   WHERE o.status != 0
-//   ${userAdminCondition}
-//   GROUP BY o.id
-//   ORDER BY o.id DESC  `,
-//       []
-//     );
-
-
-
-
-
-
-//     return res.status(200).json({
-//       data: orders,
-//       message: "Record Successfully Fetched",
-//       status: true,
-//       count: results.length,
-//     });
-//   } catch (error) {
-//     console.log(error);
-//     return res.status(500).json({ error: "Server error", status: false });
-//   }
-// });
-
-
-// dhara2
-router.get("/:id?", authMiddleware, async (req, res) => {
+router.get("/:id?",  async (req, res) => {
   try {
     const id = req.params.id;
     const user_id = req.user_id;
     const role_id = req.role_id;
-    const { page = 1, limit = 10 } = req.body;
-    const parsedPage = parseInt(page);
-    const parsedLimit =
-      parseInt(limit) > 0 ? parseInt(limit) : 100000000000000000000000;
-    const offset = (parsedPage - 1) * parsedLimit;
 
     if (id) {
-      // Query to fetch order with order items (using GROUP_CONCAT for compatibility)
+      // Fetch a specific order
       let [results] = await pool.query(
         `SELECT 
           o.id,
-          o.id as order_id,
+          o.id AS order_id,
           o.order_number,
           o.status, 
           o.user_id,
@@ -239,13 +91,13 @@ router.get("/:id?", authMiddleware, async (req, res) => {
           o.order_status,
           o.updated_at,
           CASE 
-              WHEN o.order_status = 1 THEN 'pending'
-              WHEN o.order_status = 2 THEN 'in progress'
-              WHEN o.order_status = 3 THEN 'done'
-              WHEN o.order_status = 4 THEN 'order cancelled'
-              ELSE 'unknown'
-            END AS status_label,
-          GROUP_CONCAT(
+            WHEN o.order_status = 1 THEN 'pending'
+            WHEN o.order_status = 2 THEN 'in progress'
+            WHEN o.order_status = 3 THEN 'done'
+            WHEN o.order_status = 4 THEN 'order cancelled'
+            ELSE 'unknown'
+          END AS status_label,
+          JSON_ARRAYAGG(
             JSON_OBJECT(
               'order_item_id', oi.id,
               'product_id', op.id,
@@ -256,7 +108,7 @@ router.get("/:id?", authMiddleware, async (req, res) => {
               'image_url', oi.image_url,
               'size_id', oi.size_id,
               'color_id', oi.color_id
-            ) SEPARATOR ','
+            )
           ) AS order_items
         FROM ${TABLE.ORDERS_TABLE} o
         LEFT JOIN ${TABLE.ORDERITEMS_TABLE} oi ON o.id = oi.order_id
@@ -269,32 +121,29 @@ router.get("/:id?", authMiddleware, async (req, res) => {
       );
 
       if (results.length > 0) {
-        // Parse the JSON data from the GROUP_CONCAT string
-        const order = results[0];
-        order.order_items = JSON.parse(`[${order.order_items}]`); // Convert the string back to a JSON array
-
         return res.status(200).json({
-          data: order,
+          data: results[0],
           message: "Record Successfully Fetched",
           status: true,
         });
       }
 
-      return res
-        .status(404)
-        .json({ error: "Sorry, Record Not Found", status: false });
+      return res.status(404).json({
+        error: "Sorry, Record Not Found",
+        status: false,
+      });
     }
 
-    // Handle fetching multiple orders
-    let userAdminCondition = "";
-    if (role_id === isRoleUser()) {
-      userAdminCondition = "AND o.user_id = " + user_id;
-    }
+    // Handle fetching all orders
+    // let userAdminCondition = "";
+    // if (role_id === isRoleUser()) {
+    //   userAdminCondition = "AND o.user_id = " + user_id;
+    // }
 
     let [results] = await pool.query(
       `SELECT 
         o.id,
-        o.id as order_id,
+        o.id AS order_id,
         o.order_number,
         o.status, 
         o.final_amount,
@@ -305,13 +154,13 @@ router.get("/:id?", authMiddleware, async (req, res) => {
         o.order_status,
         o.updated_at,
         CASE 
-            WHEN o.order_status = 1 THEN 'pending'
-            WHEN o.order_status = 2 THEN 'in progress'
-            WHEN o.order_status = 3 THEN 'done'
-            WHEN o.order_status = 4 THEN 'order cancelled'
-            ELSE 'unknown'
-          END AS status_label,
-        GROUP_CONCAT(
+          WHEN o.order_status = 1 THEN 'pending'
+          WHEN o.order_status = 2 THEN 'in progress'
+          WHEN o.order_status = 3 THEN 'done'
+          WHEN o.order_status = 4 THEN 'order cancelled'
+          ELSE 'unknown'
+        END AS status_label,
+        JSON_ARRAYAGG(
           JSON_OBJECT(
             'order_item_id', oi.id,
             'product_id', op.id,
@@ -322,42 +171,217 @@ router.get("/:id?", authMiddleware, async (req, res) => {
             'image_url', oi.image_url,
             'size_id', oi.size_id,
             'color_id', oi.color_id
-          ) SEPARATOR ','
+          )
         ) AS order_items
       FROM ${TABLE.ORDERS_TABLE} o
       LEFT JOIN ${TABLE.ORDERITEMS_TABLE} oi ON o.id = oi.order_id
       LEFT JOIN ${TABLE.PRODUCTS_TABLE} op ON op.id = oi.product_id 
       WHERE o.status != 0
-      ${userAdminCondition}
+    
       GROUP BY o.id
-      ORDER BY o.id DESC`,
-      []
+      ORDER BY o.id DESC`
     );
 
-    if (results.length > 0) {
-      // Parse the JSON data for each order
-      results = results.map((order) => {
-        order.order_items = JSON.parse(`[${order.order_items}]`); // Convert the string back to a JSON array
-        return order;
-      });
-
-      return res.status(200).json({
-        data: results,
-        message: "Records Successfully Fetched",
-        status: true,
-        count: results.length,
-      });
-    }
-
-    return res.status(404).json({ error: "No Orders Found", status: false });
+    return res.status(200).json({
+      data: results,
+      message: "Records Successfully Fetched",
+      status: true,
+      count: results.length,
+    });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ error: "Server error", status: false });
+    return res.status(500).json({
+      error: "Server error",
+      status: false,
+    });
   }
 });
 
 
-router.get("/users/:id", authMiddleware, async (req, res) => {
+// // dhara2 = all or specific order
+// router.get("/:id?", authMiddleware, async (req, res) => {
+//   try {
+//     const id = req.params.id;
+//     const user_id = req.user_id;
+//     const role_id = req.role_id;
+//     const { page = 1, limit = 20 } = req.body;
+//     const parsedPage = parseInt(page);
+//     const parsedLimit =
+//       parseInt(limit) > 0 ? parseInt(limit) : 100000000000000000000000;
+//     const offset = (parsedPage - 1) * parsedLimit;
+
+//     if (id) {
+//       // Query to fetch order with order items (using GROUP_CONCAT for compatibility)
+//       let [results] = await pool.query(
+//         `SELECT 
+//           o.id,
+//           o.id as order_id,
+//           o.order_number,
+//           o.status, 
+//           o.user_id,
+//           o.final_amount,
+//           o.order_amount,
+//           o.address_id,
+//           o.created_at, 
+//           o.order_status,
+//           o.updated_at,
+//           CASE 
+//               WHEN o.order_status = 1 THEN 'pending'
+//               WHEN o.order_status = 2 THEN 'in progress'
+//               WHEN o.order_status = 3 THEN 'done'
+//               WHEN o.order_status = 4 THEN 'order cancelled'
+//               ELSE 'unknown'
+//             END AS status_label,
+//           GROUP_CONCAT(
+//             JSON_OBJECT(
+//               'order_item_id', oi.id,
+//               'product_id', op.id,
+//               'item_name', op.title,
+//               'quantity', oi.quantity,
+//               'rate', oi.rate,
+//               'amount', oi.amount,
+//               'image_url', oi.image_url,
+//               'size_id', oi.size_id,
+//               'color_id', oi.color_id
+//             ) SEPARATOR ','
+//           ) AS order_items
+//         FROM ${TABLE.ORDERS_TABLE} o
+//         LEFT JOIN ${TABLE.ORDERITEMS_TABLE} oi ON o.id = oi.order_id
+//         LEFT JOIN ${TABLE.PRODUCTS_TABLE} op ON op.id = oi.product_id 
+//         WHERE o.status != 0
+//         AND o.id = ?
+//         GROUP BY o.id
+//         ORDER BY o.id DESC`,
+//         [id]
+//       );
+
+//       if (results.length > 0) {
+//         // Parse the JSON data from the GROUP_CONCAT string
+//         const order = results[0];
+//         order.order_items = JSON.parse(`[${order.order_items}]`); // Convert the string back to a JSON array
+
+//         return res.status(200).json({
+//           data: order,
+//           message: "Record Successfully Fetched",
+//           status: true,
+//         });
+//       }
+
+//       // if (results.length > 0) {
+//       //   const order = results[0];
+//       //   try {
+//       //     order.order_items = order.order_items
+//       //       ? JSON.parse(`[${order.order_items}]`)
+//       //       : []; // Parse only if data exists
+//       //   } catch (error) {
+//       //     console.error("Error parsing order_items:", error);
+//       //     order.order_items = [];
+//       //   }
+
+//       //   return res.status(200).json({
+//       //     data: order,
+//       //     message: "Record Successfully Fetched",
+//       //     status: true,
+//       //   });
+//       // }
+
+//       return res
+//         .status(404)
+//         .json({ error: "Sorry, Record Not Found", status: false });
+//     }
+
+//     // Handle fetching multiple orders
+//     let userAdminCondition = "";
+//     if (role_id === isRoleUser()) {
+//       userAdminCondition = "AND o.user_id = " + user_id;
+//     }
+
+//     let [results] = await pool.query(
+//       `SELECT 
+//         o.id,
+//         o.id as order_id,
+//         o.order_number,
+//         o.status, 
+//         o.final_amount,
+//         o.order_amount,
+//         o.created_at, 
+//         o.user_id,
+//         o.address_id,
+//         o.order_status,
+//         o.updated_at,
+//         CASE 
+//             WHEN o.order_status = 1 THEN 'pending'
+//             WHEN o.order_status = 2 THEN 'in progress'
+//             WHEN o.order_status = 3 THEN 'done'
+//             WHEN o.order_status = 4 THEN 'order cancelled'
+//             ELSE 'unknown'
+//           END AS status_label,
+//         GROUP_CONCAT(
+//           JSON_OBJECT(
+//             'order_item_id', oi.id,
+//             'product_id', op.id,
+//             'item_name', op.title,
+//             'quantity', oi.quantity,
+//             'rate', oi.rate,
+//             'amount', oi.amount,
+//             'image_url', oi.image_url,
+//             'size_id', oi.size_id,
+//             'color_id', oi.color_id
+//           ) SEPARATOR ','
+//         ) AS order_items
+//       FROM ${TABLE.ORDERS_TABLE} o
+//       LEFT JOIN ${TABLE.ORDERITEMS_TABLE} oi ON o.id = oi.order_id
+//       LEFT JOIN ${TABLE.PRODUCTS_TABLE} op ON op.id = oi.product_id 
+//       WHERE o.status != 0
+//       ${userAdminCondition}
+//       GROUP BY o.id
+//       ORDER BY o.id DESC`,
+//       []
+//     );
+
+//     // if (results.length > 0) {
+//     //   // Parse the JSON data for each order
+//     //   results = results.map((order) => {
+//     //     order.order_items = JSON.parse(`[${order.order_items}]`); // Convert the string back to a JSON array
+//     //     return order;
+//     //   });
+
+//     //   return res.status(200).json({
+//     //     data: results,
+//     //     message: "Records Successfully Fetched",
+//     //     status: true,
+//     //     count: results.length,
+//     //   });
+//     // }
+
+//     if (results.length > 0) {
+//       const order = results[0];
+//       try {
+//         order.order_items = order.order_items
+//           ? JSON.parse(`[${order.order_items}]`)
+//           : []; // Parse only if data exists
+//       } catch (error) {
+//         console.error("Error parsing order_items:", error);
+//         order.order_items = [];
+//       }
+
+//       return res.status(200).json({
+//         data: order,
+//         message: "Record Successfully Fetched",
+//         status: true,
+//       });
+//     }
+
+//     return res.status(404).json({ error: "No Orders Found", status: false });
+//   } catch (error) {
+//     console.log(error);
+//     return res.status(500).json({ error: "Server error", status: false });
+//   }
+// });
+
+
+//get order based on users id
+router.get("/users/:id",  async (req, res) => {
   try {
     const userId = req.params.id;
 
@@ -404,25 +428,31 @@ router.get("/users/:id", authMiddleware, async (req, res) => {
     );
 
     if (results.length > 0) {
-      // Parse order_items for each order
-      results.forEach((order) => {
-        order.order_items = JSON.parse(`[${order.order_items}]`); // Convert string to JSON array
-      });
+      const order = results[0];
+      try {
+        order.order_items = order.order_items
+          ? JSON.parse(`[${order.order_items}]`)
+          : []; // Parse only if data exists
+      } catch (error) {
+        console.error("Error parsing order_items:", error);
+        order.order_items = [];
+      }
 
       return res.status(200).json({
-        data: results,
-        message: "Orders Successfully Fetched",
+        data: order,
+        message: "Record Successfully Fetched",
         status: true,
       });
     }
+
 
     return res.status(404).json({
       error: "No Orders Found for the specified user",
       status: false,
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({
+    console.error("error", error);
+    return res.status(500).json({   
       error: "Server Error",
       status: false,
     });

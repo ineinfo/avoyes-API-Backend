@@ -89,17 +89,21 @@ router.post('/', uploadUsers,multerErrorHandler, async (req, res) => {
     try {
         const { first_name, last_name, email, phone, password } = req.body;
 
-        if (!first_name || !last_name || !email || !phone || !password) {
-            return res.status(400).json({ error: 'First Name, Last Name, Email, Phone and Password fields are required', status: false });
+        if (!first_name || !last_name || !email || !password) {
+            return res.status(400).json({ error: 'First Name, Last Name, Email, and Password fields are required', status: false });
         }
 
-        const mobileRegex = /^[0-9]{10}$/;
-        if (!mobileRegex.test(phone)) {
-            return res.status(400).json({ error: 'Phone number must be 10 digits', status: false });
-        }
+        if (phone) {
+            const mobileRegex = /^[0-9]{10}$/;
+            if (!mobileRegex.test(phone)) {
+                return res.status(400).json({ error: 'Phone number must be 10 digits', status: false });
+            }
 
-        if (!validateEmail(email)) {
-            return res.status(400).json({ error: 'Invalid email format. Please enter a valid email like xyz@gmail.com', status: false });
+            // Phone Validation
+            const phoneExists = await checkPhoneExistOrNot(TABLE.USERS_TABLE, phone);
+            if (phoneExists) {
+                return res.status(409).json({ error: 'Phone number already exists', status: false });
+            }
         }
 
         // Email Validation
@@ -423,7 +427,7 @@ router.put('/:id', authMiddleware, uploadUsers, multerErrorHandler, async (req, 
 
         const { first_name, last_name, email, phone, gender } = req.body;
 
-        if (!first_name || !last_name || !email || !phone) {
+        if (!first_name || !last_name || !email ) {
             return res.status(400).json({ error: 'First Name, Last Name, Email and Phone field is required', status: false });
         }
 
@@ -440,13 +444,13 @@ router.put('/:id', authMiddleware, uploadUsers, multerErrorHandler, async (req, 
             }
         }
 
-        // Phone Validation
-        if (phone) {
-            const phoneExists = await checkPhoneExistOrNot(TABLE.USERS_TABLE, phone, id);
-            if (phoneExists) {
-                return res.status(409).json({ error: 'Phone number already exists', status: false });
-            }
-        }
+        // // Phone Validation
+        // if (phone) {
+        //     const phoneExists = await checkPhoneExistOrNot(TABLE.USERS_TABLE, phone, id);
+        //     if (phoneExists) {
+        //         return res.status(409).json({ error: 'Phone number already exists', status: false });
+        //     }
+        // }
 
         let avatar = existingRecord[0].avatar; // Default to existing avatar
         const baseUrl = req.protocol + '://' + req.get('host') + '/uploads/users/';

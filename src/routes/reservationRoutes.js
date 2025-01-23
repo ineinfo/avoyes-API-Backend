@@ -13,6 +13,10 @@ router.post('/', authMiddleware, async (req, res) => {
         if (!time_id || !food_place_id || !people || !date) {
             return res.status(400).json({ error: 'Time, Food Place Id, People And Date fields are required', status: false });
         }
+        const user_id = req.user_id;
+        if (!user_id) {
+            return res.status(401).json({ error: 'Unauthorized. User ID missing from token.', status: false });
+        }
 
         // Validate date format (YYYY-MM-DD)
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -20,10 +24,10 @@ router.post('/', authMiddleware, async (req, res) => {
             return res.status(400).json({ error: 'Invalid date format. Please use YYYY-MM-DD.', status: false });
         }
 
-// tha kka rdh ara tha kaar thakkar dhara akshay kumar ask tha kka tha 
+ 
         const result = await pool.query(
-            `INSERT INTO ${TABLE.RESERVATION_TABLE} (time_id, food_place_id, people, date) VALUES (?, ?, ?, ?)`,
-            [time_id, food_place_id, people, date]
+            `INSERT INTO ${TABLE.RESERVATION_TABLE} (time_id, food_place_id, people, date,user_id) VALUES (?, ?, ?, ?,?)`,
+            [time_id, food_place_id, people, date,user_id]
         );
 
 
@@ -72,16 +76,22 @@ router.post('/', authMiddleware, async (req, res) => {
 router.get('/:id?', async (req, res) => {
     try {
         const id = req.params.id;
-        const { page = 1, limit = 10 } = req.body;
-        const parsedPage = parseInt(page);
-        const parsedLimit = parseInt(limit) > 0 ? parseInt(limit) : 10;
-        const offset = (parsedPage - 1) * parsedLimit;
+      
 
         if (id) {
             const [results] = await pool.query(`
-                SELECT r.*, t.time
+                SELECT r.*,
+                 t.time,
+                 u.first_name, 
+                    u.last_name, 
+                    u.email, 
+                    u.phone,
+                     f.title AS food_place_title
                 FROM ${TABLE.RESERVATION_TABLE} r 
                 LEFT JOIN ${TABLE.TIME_TABLE} t ON r.time_id = t.id 
+                LEFT JOIN ${TABLE.USERS_TABLE} u ON r.user_id = u.id
+                LEFT JOIN ${TABLE.FOODPLACE_TABLE} f ON r.food_place_id = f.id
+
                 WHERE r.status = 1 AND r.id = ?`, [id]);
                 
             if (results.length > 0) {
@@ -91,11 +101,19 @@ router.get('/:id?', async (req, res) => {
         }
 
         let [results] = await pool.query(`
-            SELECT r.*, t.time
+            SELECT r.*, t.time,
+            u.first_name, 
+                    u.last_name, 
+                    u.email, 
+                    u.phone,
+                     f.title AS food_place_title
             FROM ${TABLE.RESERVATION_TABLE} r 
             LEFT JOIN ${TABLE.TIME_TABLE} t ON r.time_id = t.id 
+            LEFT JOIN ${TABLE.USERS_TABLE} u ON r.user_id = u.id
+            LEFT JOIN ${TABLE.FOODPLACE_TABLE} f ON r.food_place_id = f.id
+
             WHERE r.status = 1 
-            ORDER BY r.id DESC LIMIT ?,?`, [offset, parsedLimit]);
+            ORDER BY r.id DESC`);
 
         return res.status(200).json({ data: results, message: "Records Successfully Fetched", status: true, count: results.length });
 
@@ -112,9 +130,17 @@ router.get('/foodplace/:food_place_id?', async (req, res) => {
 
         if (food_place_id) {
             const [results] = await pool.query(`
-                SELECT r.*, t.time
+                SELECT r.*, t.time,
+                u.first_name, 
+                    u.last_name, 
+                    u.email, 
+                    u.phone,
+                     f.title AS food_place_title
                 FROM ${TABLE.RESERVATION_TABLE} r 
                 LEFT JOIN ${TABLE.TIME_TABLE} t ON r.time_id = t.id 
+                  LEFT JOIN ${TABLE.USERS_TABLE} u ON r.user_id = u.id
+                  LEFT JOIN ${TABLE.FOODPLACE_TABLE} f ON r.food_place_id = f.id
+
                 WHERE r.status = 1 AND r.food_place_id = ?`, [food_place_id]);
 
             if (results.length > 0) {
