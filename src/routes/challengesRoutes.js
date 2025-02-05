@@ -11,7 +11,7 @@ router.post("/", challengesImages, authMiddleware, async (req, res) => {
   try {
     console.log("freq", req);
     const { title, subtitle, start_date, end_date } = req.body;
-    const user_id = req.user_id;
+    // const user_id = req.user_id;
 
     if (!title || !start_date || !end_date) {
       return res
@@ -28,8 +28,8 @@ router.post("/", challengesImages, authMiddleware, async (req, res) => {
     const image_url = image_urls.length > 0 ? image_urls[0] : "";
 
     await pool.query(
-      `INSERT INTO ${TABLE.CHALLENGES_TABLE} (title, sub_title, start_date, end_date, image_url,user_id) VALUES (?,?,?,?,?,?)`,
-      [title, subtitle, db_start_date, db_end_date, image_url, user_id]
+      `INSERT INTO ${TABLE.CHALLENGES_TABLE} (title, sub_title, start_date, end_date, image_url,user_id) VALUES (?,?,?,?,?)`,
+      [title, subtitle, db_start_date, db_end_date, image_url]
     );
 
     return res
@@ -88,7 +88,7 @@ router.get("/:id?",  async (req, res) => {
 router.put("/:id", challengesImages, authMiddleware, async (req, res) => {
   try {
     const id = req.params.id;
-    const user_id = req.user_id;
+    // const user_id = req.user_id;
 
     if (!id) {
       return res
@@ -136,9 +136,9 @@ router.put("/:id", challengesImages, authMiddleware, async (req, res) => {
     // Update the product details
     await pool.query(
       `UPDATE ${TABLE.CHALLENGES_TABLE} SET 
-          title = ?, sub_title = ?, start_date = ?, end_date = ?, image_url = ?, 
-          user_id = ? WHERE id = ?`,
-      [title, subtitle, db_start_date, db_end_date, image_url, user_id, id]
+          title = ?, sub_title = ?, start_date = ?, end_date = ?, image_url = ? 
+           WHERE id = ?`,
+      [title, subtitle, db_start_date, db_end_date, image_url, id]
     );
     return res
       .status(200)

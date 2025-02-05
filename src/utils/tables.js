@@ -51,6 +51,8 @@ const TABLES = {
     ORDERS_TABLE:'orders',
     ORDERITEMS_TABLE:'order_items',
     CHALLENGES_TABLE:'challenges',
+    JOINCHALLENGES_TABLE:'join_challenges',
+
     EVENT_VIDEO_TABLE:'event_videos',
     ACTIVITIES_TABLE:'activities',
     EVENT_CATEGORIES:'event_category',

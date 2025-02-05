@@ -55,6 +55,7 @@ const activityCategoryRoutes=require('./routes/activityCategoryRoutes');
 const statesPortal=require('./routes/statesPortal');
 const citiesPortal=require('./routes/citiesPortal');
 const bannersPortal=require('./routes/bannersRoutes');
+const joinchallengesRoutes=require('./routes/joinchallengesRoutes');
 
 
 
@@ -129,6 +130,7 @@ app.use('/api/ratings', ratingRoutes);
 app.use('/api/admin', adminDashboardRoutes);
 app.use('/api/user', userDashboardRoutes);
 app.use('/api/challenges', challengesRoutes);
+app.use('/api/joinchallenges', joinchallengesRoutes);
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/eventcategory', eventCategoryRoutes);
 app.use('/api/eventspeaker', eventSpeakerRoutes);
