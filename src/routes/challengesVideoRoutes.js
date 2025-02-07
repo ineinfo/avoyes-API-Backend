@@ -38,7 +38,7 @@ router.put('/update', authMiddleware, async (req, res) => {
 });
 
 
-  router.get('/get', authMiddleware, async (req, res) => {
+  router.get('/get', async (req, res) => {
     try {
         const [record] = await pool.query(`SELECT * FROM videochallenges WHERE id = 1`);
         
@@ -57,3 +57,5 @@ router.put('/update', authMiddleware, async (req, res) => {
   });
 
   module.exports = router;
+
+  
