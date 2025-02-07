@@ -56,7 +56,7 @@ const statesPortal=require('./routes/statesPortal');
 const citiesPortal=require('./routes/citiesPortal');
 const bannersPortal=require('./routes/bannersRoutes');
 const joinchallengesRoutes=require('./routes/joinchallengesRoutes');
-
+const challengesVideoRoutes=require('./routes/challengesVideoRoutes');
 
 
 
@@ -139,6 +139,7 @@ app.use('/api/activitycategory', activityCategoryRoutes);
 app.use('/api/state', statesPortal);
 app.use('/api/cities', citiesPortal);
 app.use('/api/banner', bannersPortal);
+app.use('/api/challengesvideo', challengesVideoRoutes);
 
 
 

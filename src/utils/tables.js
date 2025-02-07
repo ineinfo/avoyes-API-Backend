@@ -24,7 +24,7 @@ const TABLES = {
     PRODUCT_TAG_TABLE:'product_tag',
     PRODUCT_TAG_ADDED_TABLE:'product_tag_added',
 
-
+    VIDEOCHALLENGES_TABLE:'videochallenges',
     FAQS_TABLE: 'faqs',
     SOCIALS_TABLE: 'socials',
     PAGES_TABLE: 'pages',
