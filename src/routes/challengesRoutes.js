@@ -41,8 +41,55 @@ router.post("/", challengesImages, authMiddleware, async (req, res) => {
   }
 });
 
-// All List & Specific List of challenges
-router.get("/:id?",  async (req, res) => {
+
+
+
+// All List & Specific List of challenges   ==== without users' details
+// router.get("/:id?",  async (req, res) => {
+//   try {
+//     const id = req.params.id;
+//     const { page = 1, limit = 10 } = req.body;
+//     const parsedPage = parseInt(page);
+//     const parsedLimit = parseInt(limit) > 0 ? parseInt(limit) : 10;
+//     const offset = (parsedPage - 1) * parsedLimit;
+
+//     if (id) {
+//       const [results] = await pool.query(
+//         `SELECT * FROM ${TABLE.CHALLENGES_TABLE} WHERE status !=0 and id = ?`,
+//         [id]
+//       );
+//       if (results.length > 0) {
+//         return res
+//           .status(200)
+//           .json({
+//             data: results[0],
+//             message: "Record Successfully Fetched",
+//             status: true,
+//           });
+//       }
+//       return res
+//         .status(404)
+//         .json({ error: "Sorry, Record Not Found", status: false });
+//     }
+
+//     let [results] = await pool.query(
+//       `SELECT * FROM ${TABLE.CHALLENGES_TABLE} WHERE status !=0 ORDER BY id DESC LIMIT ? OFFSET ?`,
+//       [parsedLimit, offset]
+//     );
+
+//     return res.status(200).json({
+//       data: results,
+//       message: "Record Successfully Fetched",
+//       status: true,
+//       count: results.length,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({ error: "Server error", status: false });
+//   }
+// });
+
+
+router.get("/:id?", async (req, res) => {
   try {
     const id = req.params.id;
     const { page = 1, limit = 10 } = req.body;
@@ -51,39 +98,98 @@ router.get("/:id?",  async (req, res) => {
     const offset = (parsedPage - 1) * parsedLimit;
 
     if (id) {
+      // Query for specific challenge by id and join with join_challenges and users table to get user details
       const [results] = await pool.query(
-        `SELECT * FROM ${TABLE.CHALLENGES_TABLE} WHERE status !=0 and id = ?`,
+        `SELECT c.*, 
+                GROUP_CONCAT(DISTINCT jc.user_id) AS user_ids,
+                GROUP_CONCAT(DISTINCT u.first_name) AS first_names,
+                GROUP_CONCAT(DISTINCT u.last_name) AS last_names,
+                GROUP_CONCAT(DISTINCT u.email) AS emails
+         FROM challenges c
+         LEFT JOIN join_challenges jc ON c.id = jc.challenge_id AND jc.status = 1
+         LEFT JOIN users u ON jc.user_id = u.id
+         WHERE c.status != 0 AND c.id = ?
+         GROUP BY c.id`,
         [id]
       );
+
       if (results.length > 0) {
-        return res
-          .status(200)
-          .json({
-            data: results[0],
-            message: "Record Successfully Fetched",
-            status: true,
-          });
+        // Prepare the response with user details as arrays
+        const userIds = results[0].user_ids ? results[0].user_ids.split(',') : [];
+        const firstNames = results[0].first_names ? results[0].first_names.split(',') : [];
+        const lastNames = results[0].last_names ? results[0].last_names.split(',') : [];
+        const emails = results[0].emails ? results[0].emails.split(',') : [];
+
+        const userDetails = userIds.map((userId, index) => ({
+          user_id: userId,
+          first_name: firstNames[index],
+          last_name: lastNames[index],
+          email: emails[index]
+        }));
+
+        return res.status(200).json({
+          data: {
+            challenge: results[0],
+            users: userDetails
+          },
+          message: "Record Successfully Fetched",
+          status: true,
+        });
       }
-      return res
-        .status(404)
-        .json({ error: "Sorry, Record Not Found", status: false });
+
+      return res.status(404).json({ error: "Sorry, Record Not Found", status: false });
     }
 
+    // Query for all challenges and join with join_challenges and users table to get user details
     let [results] = await pool.query(
-      `SELECT * FROM ${TABLE.CHALLENGES_TABLE} WHERE status !=0 ORDER BY id DESC LIMIT ? OFFSET ?`,
+      `SELECT c.*, 
+              GROUP_CONCAT(DISTINCT jc.user_id) AS user_ids,
+              GROUP_CONCAT(DISTINCT u.first_name) AS first_names,
+              GROUP_CONCAT(DISTINCT u.last_name) AS last_names,
+              GROUP_CONCAT(DISTINCT u.email) AS emails
+       FROM challenges c
+       LEFT JOIN join_challenges jc ON c.id = jc.challenge_id AND jc.status = 1
+       LEFT JOIN users u ON jc.user_id = u.id
+       WHERE c.status != 0
+       GROUP BY c.id
+       ORDER BY c.id DESC
+       LIMIT ? OFFSET ?`,
       [parsedLimit, offset]
     );
 
+    const challengesWithUserDetails = results.map(challenge => {
+      const userIds = challenge.user_ids ? challenge.user_ids.split(',') : [];
+      const firstNames = challenge.first_names ? challenge.first_names.split(',') : [];
+      const lastNames = challenge.last_names ? challenge.last_names.split(',') : [];
+      const emails = challenge.emails ? challenge.emails.split(',') : [];
+
+      const userDetails = userIds.map((userId, index) => ({
+        user_id: userId,
+        first_name: firstNames[index],
+        last_name: lastNames[index],
+        email: emails[index]
+      }));
+
+      return {
+        ...challenge,
+        users: userDetails
+      };
+    });
+
     return res.status(200).json({
-      data: results,
+      data: challengesWithUserDetails,
       message: "Record Successfully Fetched",
       status: true,
       count: results.length,
     });
+
   } catch (error) {
+    console.error(error);
     return res.status(500).json({ error: "Server error", status: false });
   }
 });
+
+
 
 router.put("/:id", challengesImages, authMiddleware, async (req, res) => {
   try {
